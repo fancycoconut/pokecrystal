@@ -159,7 +159,7 @@ MerchandiseShelfText:
 	line "merchandise!"
 	done
 
-TownMapText:
+LookTownMapText:
 	text "It's the TOWN MAP."
 	done
 
@@ -219,8 +219,8 @@ ContestResults_ReadyToJudgeText:
 	line "the #MON you've"
 	cont "caught."
 
-	para $56
-	line $56
+	para "<……>"
+	line "<……>"
 
 	para "We have chosen the"
 	line "winners!"
