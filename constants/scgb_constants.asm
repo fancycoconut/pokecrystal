@@ -1,4 +1,5 @@
-; GetSGBLayout arguments (see engine/gfx/cgb_layouts.asm and engine/gfx/sgb_layouts.asm)
+; CGBLayoutJumptable indexes (see engine/gfx/cgb_layouts.asm)
+; SGBLayoutJumptable indexes (see engine/gfx/sgb_layouts.asm)
 	const_def
 	const SCGB_BATTLE_GRAYSCALE
 	const SCGB_BATTLE_COLORS
@@ -31,6 +32,7 @@
 	const SCGB_TRAINER_OR_MON_FRONTPIC_PALS
 	const SCGB_MYSTERY_GIFT
 	const SCGB_1E
+NUM_SCGB_LAYOUTS EQU const_value
 
 SCGB_PARTY_MENU_HP_BARS EQU $fc
 SCGB_DEFAULT EQU $ff
@@ -144,7 +146,7 @@ SCGB_DEFAULT EQU $ff
 	const SGB_ICON_EN
 	const SGB_DATA_SND
 	const SGB_DATA_TRN
-	const SGB_MLT_REG
+	const SGB_MLT_REQ
 	const SGB_JUMP
 	const SGB_CHR_TRN
 	const SGB_PCT_TRN

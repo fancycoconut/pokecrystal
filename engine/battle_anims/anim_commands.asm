@@ -26,11 +26,11 @@ _PlayBattleAnim:
 
 	ld c, 1
 	ldh a, [rKEY1]
-	bit 7, a
-	jr nz, .asm_cc0ff
+	bit 7, a ; check CGB double speed mode
+	jr nz, .got_speed
 	ld c, 3
 
-.asm_cc0ff
+.got_speed
 	ld hl, hVBlank
 	ld a, [hl]
 	push af
@@ -329,6 +329,7 @@ RunBattleAnimCommand:
 
 BattleAnimCommands::
 ; entries correspond to anim_* constants (see macros/scripts/battle_anims.asm)
+	table_width 2, BattleAnimCommands
 	dw BattleAnimCmd_Obj
 	dw BattleAnimCmd_1GFX
 	dw BattleAnimCmd_2GFX
@@ -377,6 +378,7 @@ BattleAnimCommands::
 	dw BattleAnimCmd_Loop
 	dw BattleAnimCmd_Call
 	dw BattleAnimCmd_Ret
+	assert_table_length $100 - FIRST_BATTLE_ANIM_CMD
 
 BattleAnimCmd_EA:
 BattleAnimCmd_EB:

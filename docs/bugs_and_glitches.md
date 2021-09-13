@@ -51,10 +51,13 @@ Fixes in the [multi-player battle engine](#multi-player-battle-engine) category 
   - [Glacier Badge may not boost Special Defense depending on the value of Special Attack](#glacier-badge-may-not-boost-special-defense-depending-on-the-value-of-special-attack)
   - ["Smart" AI encourages Mean Look if its own Pokémon is badly poisoned](#smart-ai-encourages-mean-look-if-its-own-pokémon-is-badly-poisoned)
   - ["Smart" AI discourages Conversion2 after the first turn](#smart-ai-discourages-conversion2-after-the-first-turn)
+  - ["Smart" AI does not encourage Solar Beam, Flame Wheel, or Moonlight during Sunny Day](#smart-ai-does-not-encourage-solar-beam-flame-wheel-or-moonlight-during-sunny-day)
+  - [AI does not discourage Future Sight when it's already been used](#ai-does-not-discourage-future-sight-when-its-already-been-used)
   - [AI makes a false assumption about `CheckTypeMatchup`](#ai-makes-a-false-assumption-about-checktypematchup)
   - [AI use of Full Heal or Full Restore does not cure Nightmare status](#ai-use-of-full-heal-or-full-restore-does-not-cure-nightmare-status)
   - [AI use of Full Heal does not cure confusion status](#ai-use-of-full-heal-does-not-cure-confusion-status)
   - [Wild Pokémon can always Teleport regardless of level difference](#wild-pokémon-can-always-teleport-regardless-of-level-difference)
+  - [`RIVAL2` has lower DVs than `RIVAL1`](#rival2-has-lower-dvs-than-rival1)
   - [`HELD_CATCH_CHANCE` has no effect](#held_catch_chance-has-no-effect)
   - [Credits sequence changes move selection menu behavior](#credits-sequence-changes-move-selection-menu-behavior)
 - [Overworld engine](#overworld-engine)
@@ -64,6 +67,7 @@ Fixes in the [multi-player battle engine](#multi-player-battle-engine) category 
 - [Graphics](#graphics)
   - [In-battle “`…`” ellipsis is too high](#in-battle--ellipsis-is-too-high)
   - [Two tiles in the `port` tileset are drawn incorrectly](#two-tiles-in-the-port-tileset-are-drawn-incorrectly)
+  - [The Ruins of Alph research center's roof color at night looks wrong](#the-ruins-of-alph-research-centers-roof-color-at-night-looks-wrong)
   - [Using a Park Ball in non-Contest battles has a corrupt animation](#using-a-park-ball-in-non-contest-battles-has-a-corrupt-animation)
   - [Battle transitions fail to account for the enemy's level](#battle-transitions-fail-to-account-for-the-enemys-level)
   - [Some trainer NPCs have inconsistent overworld sprites](#some-trainer-npcs-have-inconsistent-overworld-sprites)
@@ -565,7 +569,7 @@ This bug affects Attract, Curse, Foresight, Mean Look, Mimic, Nightmare, Spider 
  .got_mon
  	ld a, [wCurBeatUpPartyMon]
  	ld hl, wPartyMonNicknames
- 	call GetNick
+ 	call GetNickname
  	ld a, MON_HP
  	call GetBeatupMonLocation
  	ld a, [hli]
@@ -1112,6 +1116,41 @@ As Pryce's dialog ("That BADGE will raise the SPECIAL stats of POKéMON.") impli
 ```
 
 
+### "Smart" AI does not encourage Solar Beam, Flame Wheel, and Moonlight during Sunny Day
+
+**Fix:** Edit `SunnyDayMoves` in [data/battle/ai/sunny_day_moves.asm](https://github.com/pret/pokecrystal/blob/master/data/battle/ai/sunny_day_moves.asm):
+
+```diff
+SunnyDayMoves:
+ 	db FIRE_PUNCH
+ 	db EMBER
+ 	db FLAMETHROWER
++	db SOLARBEAM
+ 	db FIRE_SPIN
+ 	db FIRE_BLAST
++	db FLAME_WHEEL
+ 	db SACRED_FIRE
+ 	db MORNING_SUN
+ 	db SYNTHESIS
++	db MOONLIGHT
+ 	db -1 ; end
+```
+
+
+### AI does not discourage Future Sight when it's already been used
+
+**Fix:** Edit `AI_Redundant` in [engine/battle/ai/redundant.asm](https://github.com/pret/pokecrystal/blob/master/engine/battle/ai/redundant.asm):
+
+```diff
+ .FutureSight:
+-	ld a, [wEnemyScreens]
+-	bit 5, a
++	ld a, [wEnemyFutureSightCount]
++	and a
+ 	ret
+```
+
+
 ### AI makes a false assumption about `CheckTypeMatchup`
 
 **Fix:** Edit `BattleCheckTypeMatchup` in [engine/battle/effect_commands.asm](https://github.com/pret/pokecrystal/blob/master/engine/battle/effect_commands.asm):
@@ -1235,13 +1274,29 @@ As Pryce's dialog ("That BADGE will raise the SPECIAL stats of POKéMON.") impli
  	call BattleRandom
  	cp c
  	jr nc, .loop_enemy
+ 	; b = player level / 4
  	srl b
  	srl b
- 	cp b
--	; This should be jr c, .failed
+-	; This should be "jr c, .failed"
 -	; As written, it makes enemy use of Teleport always succeed if able
++	; If the random number >= player level / 4, Teleport will succeed
+ 	cp b
 -	jr nc, .run_away
 +	jr c, .failed
+```
+
+
+### `RIVAL2` has lower DVs than `RIVAL1`
+
+`RIVAL1` is battled throughout the game. `RIVAL2` is battled at Indigo Plateau, and would not be expected to have worse DVs.
+
+**Fix:** Edit `TrainerClassDVs` in [data/trainers/dvs.asm](https://github.com/pret/pokecrystal/blob/master/data/trainers/dvs.asm):
+
+```diff
+ 	dn 13, 13, 13, 13 ; RIVAL1
+ 	...
+-	dn  9,  8,  8,  8 ; RIVAL2
++	dn 13, 13, 13, 13 ; RIVAL2
 ```
 
 
@@ -1461,6 +1516,25 @@ This is a mistake with the left-hand warp carpet corner tiles in [gfx/tilesets/p
 **Fix:** Adjust them to match the right-hand corner tiles:
 
 ![image](https://raw.githubusercontent.com/pret/pokecrystal/master/docs/images/port.png)
+
+
+## The Ruins of Alph research center's roof color at night looks wrong
+
+The dungeons' map group mostly has indoor maps that don't need roof colors, but [maps/RuinsOfAlphOutside.blk](https://github.com/pret/pokecrystal/blob/master/maps/RuinsOfAlphOutside.blk) is an exception. It appears to have poorly-chosen roof colors: the morning/day colors are the same default gray as the unused group 0, and the night colors combine the light default gray and the dark red of Cinnabar's night roofs.
+
+![image](https://raw.githubusercontent.com/pret/pokecrystal/master/docs/images/ruins_of_alph_outside.png)
+
+**Fix:** Edit [gfx/tilesets/roofs.pal](https://github.com/pret/pokecrystal/blob/master/gfx/tilesets/roofs.pal) to use the same red colors as Cinnabar (which are not actually seen in-game):
+
+```diff
+ ; group 3 (dungeons)
+-	RGB 21,21,21, 11,11,11 ; morn/day
+-	RGB 21,21,21, 17,08,07 ; nite
++	RGB 31,10,00, 18,06,00 ; morn/day
++	RGB 18,05,09, 17,08,07 ; nite
+```
+
+![image](https://raw.githubusercontent.com/pret/pokecrystal/master/docs/images/ruins_of_alph_outside_cinnabar.png)
 
 
 ### Using a Park Ball in non-Contest battles has a corrupt animation
@@ -1714,7 +1788,7 @@ Most of the NPCs in [maps/NationalParkBugContest.asm](https://github.com/pret/po
 ```diff
  .CheckWarp:
 -; Bug: Since no case is made for STANDING here, it will check
--; [.edgewarps + $ff]. This resolves to $3e at $8035a.
+-; [.EdgeWarps + $ff]. This resolves to $3e.
 -; This causes wWalkingIntoEdgeWarp to be nonzero when standing on tile $3e,
 -; making bumps silent.
 -
@@ -1864,13 +1938,12 @@ This supports up to six entries.
 **Fix:** Edit `DragonsDen1F_MapScripts` in [maps/DragonsDen1F.asm](https://github.com/pret/pokecrystal/blob/master/maps/DragonsDen1F.asm):
 
 ```diff
--	db 0 ; callbacks
-+	db 1 ; callbacks
+ 	def_callbacks
 +	callback MAPCALLBACK_NEWMAP, .UnsetClairScene
 +
 +.UnsetClairScene:
 +	setmapscene DRAGONS_DEN_B1F, SCENE_DRAGONSDENB1F_NOTHING
-+	return
++	endcallback
 ```
 
 

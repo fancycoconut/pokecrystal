@@ -5,6 +5,7 @@ BattleTowerRoomMenu:
 	ret
 
 Function1700ba:
+; special
 	call InitBattleTowerChallengeRAM
 	farcall Function11811a
 	ret
@@ -136,7 +137,7 @@ Function170139: ; unreferenced
 	ld l, a
 	ld a, [wcd4c]
 	ld h, a
-	ld bc, $0006
+	ld bc, 6
 	call CopyBytes
 	ld a, l
 	ld [wcd4b], a
@@ -156,7 +157,7 @@ Function170139: ; unreferenced
 	ld a, BANK(s5_a894) ; aka BANK(s5_a948)
 	call OpenSRAM
 	ld hl, s5_a894
-	ld bc, NAME_LENGTH_JAPANESE
+	ld bc, 6
 	call CopyBytes
 	ld hl, wc608
 	ld de, s5_a948
@@ -308,9 +309,9 @@ ReadBTTrainerParty:
 .skip_mon_3
 ; Add the terminator character to each of these names
 	ld a, "@"
-	ld [wBT_OTTempMon1NameEnd - 1], a
-	ld [wBT_OTTempMon2NameEnd - 1], a
-	ld [wBT_OTTempMon3NameEnd - 1], a
+	ld [wBT_OTTempMon1Name + MON_NAME_LENGTH - 1], a
+	ld [wBT_OTTempMon2Name + MON_NAME_LENGTH - 1], a
+	ld [wBT_OTTempMon3Name + MON_NAME_LENGTH - 1], a
 ; Fix errors in the movesets
 	call CheckBTMonMovesForErrors
 ; Repair the trainer name if needed, then copy it to wOTPlayerName
@@ -385,11 +386,9 @@ ValidateBTParty: ; unreferenced
 	ld c, l
 	ld a, [hl]
 	and a
-x = $ff
-rept $ff - NUM_POKEMON
+for x, $ff, NUM_POKEMON, -1
 	jr z, .invalid
 	cp x
-x = x - 1
 endr
 	jr nz, .valid
 
@@ -564,7 +563,7 @@ CopyBTTrainer_FromBT_OT_TowBT_OTTemp:
 
 	ld a, BANK(sBattleTowerChallengeState)
 	call OpenSRAM
-	ld a, BATTLETOWER_CHALLENGE_IN_PROGESS
+	ld a, BATTLETOWER_CHALLENGE_IN_PROGRESS
 	ld [sBattleTowerChallengeState], a
 	ld hl, sNrOfBeatenBattleTowerTrainers
 	inc [hl]
@@ -1257,7 +1256,7 @@ BattleTowerAction_EggTicket: ; BattleTowerAction $0e
 	cp EGG
 	jr nz, .not_egg
 	push hl
-	ld hl, wPartyMonOT
+	ld hl, wPartyMonOTs
 	ld de, NAME_LENGTH_JAPANESE
 	ld a, b
 	and a
@@ -1332,7 +1331,7 @@ Function1709bb: ; BattleTowerAction $10
 	jr nc, .invalid
 	ld e, a
 	ld d, 0
-	ld hl, .jumptable
+	ld hl, .Jumptable
 	add hl, de
 	add hl, de
 	ld a, [hli]
@@ -1348,7 +1347,7 @@ Function1709bb: ; BattleTowerAction $10
 	call CloseSRAM
 	ret
 
-.jumptable:
+.Jumptable:
 	dw .NoAction
 	dw .NoAction
 	dw .DoAction1

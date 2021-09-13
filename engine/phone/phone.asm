@@ -116,9 +116,10 @@ CheckPhoneCall::
 	nop
 	jr nc, .no_call
 
+	; 50% chance for a call
 	call Random
 	ld b, a
-	and 50 percent
+	and %01111111
 	cp b
 	jr nz, .no_call
 
@@ -247,7 +248,7 @@ CheckSpecialPhoneCall::
 	ld c, a
 	ld b, 0
 	ld hl, SpecialPhoneCallList
-	ld a, 6
+	ld a, SPECIALCALL_SIZE
 	call AddNTimes
 	ld a, [hli]
 	ld h, [hl]
@@ -291,7 +292,7 @@ CheckSpecialPhoneCall::
 	ld c, a
 	ld b, 0
 	ld hl, SpecialPhoneCallList
-	ld a, 6
+	ld a, SPECIALCALL_SIZE
 	call AddNTimes
 	ret
 

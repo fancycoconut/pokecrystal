@@ -192,7 +192,7 @@ PrintPartyMonPage1:
 	hlcoord 1, 9
 	ld de, PrintParty_OTString
 	call PlaceString
-	ld hl, wPartyMonOT
+	ld hl, wPartyMonOTs
 	call GetCurPartyMonName
 	hlcoord 4, 9
 	call PlaceString
@@ -217,10 +217,9 @@ PrintPartyMonPage1:
 	ld [hl], a
 	ld a, [wCurPartySpecies]
 	cp UNOWN
-	jr z, .asm_1dc469
+	jr z, .got_alignment
 	inc [hl]
-
-.asm_1dc469
+.got_alignment
 	hlcoord 0, 0
 	call _PrepMonFrontpic
 	call WaitBGMap

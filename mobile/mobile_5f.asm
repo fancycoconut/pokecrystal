@@ -1601,17 +1601,13 @@ Function17da31:
 	ret
 
 Unknown_17da8c:
-x = 0
-rept 8
+for x, 8
 	db 1 << x
-x = x + 1
 endr
 
 Unknown_17da94:
-x = 0
-rept 8
+for x, 8
 	db $ff ^ (1 << x)
-x = x + 1
 endr
 
 Function17da9c:
@@ -2299,7 +2295,7 @@ Function17ded9:
 	push hl
 	ld a, [wPartyCount]
 	dec a
-	ld hl, wPartyMonOT
+	ld hl, wPartyMonOTs
 	call SkipNames
 	ld d, h
 	ld e, l
@@ -2486,7 +2482,7 @@ Function17e026:
 	jr z, .asm_17e08e
 	push bc
 	ld bc, $6
-	ld de, sBoxMonOT
+	ld de, sBoxMonOTs
 	call CopyBytes
 	ld a, [hli]
 	ld b, a

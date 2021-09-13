@@ -47,7 +47,7 @@ DoMove:
 	add hl, bc
 	add hl, bc
 	ld a, BANK(MoveEffectsPointers)
-	call GetFarHalfword
+	call GetFarWord
 
 	ld de, wBattleScriptBuffer
 
@@ -98,7 +98,7 @@ DoMove:
 	pop bc
 
 	ld a, BANK(BattleCommandPointers)
-	call GetFarHalfword
+	call GetFarWord
 
 	call .DoMoveEffectCommand
 
@@ -1424,7 +1424,7 @@ CheckTypeMatchup:
 	ld b, [hl]
 	inc hl
 	ld c, [hl]
-	ld a, 10 ; 1.0
+	ld a, EFFECTIVE
 	ld [wTypeMatchup], a
 	ld hl, TypeMatchups
 .TypesLoop:
@@ -1487,7 +1487,7 @@ BattleCommand_ResetTypeMatchup:
 	call BattleCheckTypeMatchup
 	ld a, [wTypeMatchup]
 	and a
-	ld a, 10 ; 1.0
+	ld a, EFFECTIVE
 	jr nz, .reset
 	call ResetDamage
 	xor a
@@ -2359,7 +2359,7 @@ BattleCommand_SuperEffectiveText:
 
 	ld a, [wTypeModifier]
 	and $7f
-	cp 10 ; 1.0
+	cp EFFECTIVE
 	ret z
 	ld hl, SuperEffectiveText
 	jr nc, .print
@@ -6731,7 +6731,7 @@ GetItemHeldEffect:
 	ld a, ITEMATTR_STRUCT_LENGTH
 	call AddNTimes
 	ld a, BANK(ItemAttributes)
-	call GetFarHalfword
+	call GetFarWord
 	ld b, l
 	ld c, h
 	pop hl

@@ -693,30 +693,30 @@ IntroScene14:
 	jr z, .done
 	cp $60
 	jr z, .jump
-	jr nc, .asm_e4e1a
+	jr nc, .run_after_jump
 	cp $40
-	jr nc, .asm_e4e33
+	jr nc, .run
 	ret
 
 .jump
 	ld de, SFX_INTRO_SUICUNE_4
 	call PlaySFX
 
-.asm_e4e1a
+.run_after_jump
 	ld a, $1
 	ld [wIntroSceneTimer], a
 	ld a, [wGlobalAnimXOffset]
 	cp $88
-	jr c, .asm_e4e2c
+	jr c, .disappear
 	sub $8
 	ld [wGlobalAnimXOffset], a
 	ret
 
-.asm_e4e2c
+.disappear
 	farcall DeinitializeAllSprites
 	ret
 
-.asm_e4e33
+.run
 	ld a, [wGlobalAnimXOffset]
 	sub $2
 	ld [wGlobalAnimXOffset], a
@@ -1310,26 +1310,20 @@ CrystalIntro_UnownFade:
 
 .BWFade:
 ; Fade between black and white.
-hue = 0
-rept 32
+for hue, 32
 	RGB hue, hue, hue
-hue = hue + 1
 endr
 
 .BlackLBlueFade:
 ; Fade between black and light blue.
-hue = 0
-rept 32
+for hue, 32
 	RGB 0, hue / 2, hue
-hue = hue + 1
 endr
 
 .BlackBlueFade:
 ; Fade between black and blue.
-hue = 0
-rept 32
+for hue, 32
 	RGB 0, 0, hue
-hue = hue + 1
 endr
 
 Intro_Scene20_AppearUnown:

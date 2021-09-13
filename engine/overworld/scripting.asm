@@ -63,6 +63,7 @@ RunScriptCommand:
 
 ScriptCommandTable:
 ; entries correspond to *_command constants (see macros/scripts/events.asm)
+	table_width 2, ScriptCommandTable
 	dw Script_scall                      ; 00
 	dw Script_farscall                   ; 01
 	dw Script_memcall                    ; 02
@@ -137,7 +138,7 @@ ScriptCommandTable:
 	dw Script_opentext                   ; 47
 	dw Script_refreshscreen              ; 48
 	dw Script_closetext                  ; 49
-	dw Script_writeunusedbyte      ; 4a
+	dw Script_writeunusedbyte            ; 4a
 	dw Script_farwritetext               ; 4b
 	dw Script_writetext                  ; 4c
 	dw Script_repeattext                 ; 4d
@@ -204,7 +205,7 @@ ScriptCommandTable:
 	dw Script_newloadmap                 ; 8a
 	dw Script_pause                      ; 8b
 	dw Script_deactivatefacing           ; 8c
-	dw Script_prioritysjump              ; 8d
+	dw Script_sdefer                     ; 8d
 	dw Script_warpcheck                  ; 8e
 	dw Script_stopandsjump               ; 8f
 	dw Script_endcallback                ; 90
@@ -233,6 +234,7 @@ ScriptCommandTable:
 	dw Script_getname                    ; a7
 	dw Script_wait                       ; a8
 	dw Script_checksave                  ; a9
+	assert_table_length NUM_EVENT_COMMANDS
 
 StartScript:
 	ld hl, wScriptFlags
@@ -1369,7 +1371,7 @@ StdScript:
 	ld b, a
 	inc hl
 	ld a, BANK(StdScripts)
-	call GetFarHalfword
+	call GetFarWord
 	ret
 
 SkipTwoScriptBytes:
@@ -1386,13 +1388,13 @@ ScriptJump:
 	ld [wScriptPos + 1], a
 	ret
 
-Script_prioritysjump:
+Script_sdefer:
 	ld a, [wScriptBank]
-	ld [wPriorityScriptBank], a
+	ld [wDeferredScriptBank], a
 	call GetScriptByte
-	ld [wPriorityScriptAddr], a
+	ld [wDeferredScriptAddr], a
 	call GetScriptByte
-	ld [wPriorityScriptAddr + 1], a
+	ld [wDeferredScriptAddr + 1], a
 	ld hl, wScriptFlags
 	set 3, [hl]
 	ret
@@ -2358,5 +2360,5 @@ Script_checkver_duplicate: ; unreferenced
 	ld [wScriptVar], a
 	ret
 
-.gs_version
+.gs_version:
 	db GS_VERSION
