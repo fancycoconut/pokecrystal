@@ -340,12 +340,12 @@ NUM_TMS EQU const_value - TM01 - 2 ; discount ITEM_C3 and ITEM_DC
 > - $AA = 170: `POLKADOT_BOW` is for Jigglypuff
 > - $B4 = 180: `BRICK_PIECE` is for Machop
 >
-> Yellow was also being developed then, and it did the reverse, altering some catch rates to correspond to appropriate Gen 2 items:
+> Yellow was also being developed then, and it did the reverse, altering some Pokémon's data after they're caught to correspond to appropriate Gen 2 items:
 >
-> - Starter Pikachu's catch rate became 163 = $A3 for `LIGHT_BALL`
-> - Wild Kadabra's catch rate became 96 = $60 for `TWISTEDSPOON`
-> - Wild Dragonair's catch rate became 27 = $1B for `PROTEIN`
-> - Wild Dragonite's catch rate became 9 = $09 for `ANTIDOTE`
+> - Starter Pikachu's catch rate byte is overwritten with 163 = $A3 for `LIGHT_BALL`
+> - Wild-caught Kadabra's catch rate byte is overwritten with 96 = $60 for `TWISTEDSPOON`
+>
+> (Yellow also directly changed Dragonair's catch rate to 27 and Dragonite's to 9, but this seems to have been only for adjusting their difficulty, since those meaninglessly correspond to `PROTEIN` and `ANTIDOTE`.)
 >
 > Most catch rates were left as gaps in the item list, and transformed into held items via the `TimeCapsule_CatchRateItems` table in [data/items/catch_rate_items.asm](https://github.com/pret/pokecrystal/blob/master/data/items/catch_rate_items.asm). For example, the 52 Pokémon with catch rate 45 would hold the gap `ITEM_2D`, except that gets transformed into `BITTER_BERRY`.
 >
@@ -403,7 +403,7 @@ Edit [engine/items/items.asm](https://github.com/pret/pokecrystal/blob/master/en
 
 `PokedexDataPointerTable` in [data/pokemon/dex_entry_pointers.asm](https://github.com/pret/pokecrystal/blob/master/data/pokemon/dex_entry_pointers.asm) is a table of `dw`, not `dba`, yet there are four banks used for Pokédex entries. The correct bank is derived from the species ID at the beginning of each Pokémon's base stats. (This is the only use the base stat species ID has.)
 
-Three separate routines do the same derivation; `GetDexEntryPointer` in [engine/pokedex/pokedex_2.asm](https://github.com/pret/pokecrystal/blob/master/engine/pokedex/pokedex_2.asm):
+Three separate routines do the same derivation: `GetDexEntryPointer` in [engine/pokedex/pokedex_2.asm](https://github.com/pret/pokecrystal/blob/master/engine/pokedex/pokedex_2.asm):
 
 ```asm
 GetDexEntryPointer:
@@ -439,10 +439,10 @@ GetDexEntryPointer:
 	db BANK("Pokedex Entries 193-251")
 ```
 
-`GetPokedexEntryBank` in [engine/items/item_effects.asm](https://github.com/pret/pokecrystal/blob/master/engine/items/item_effects.asm):
+`HeavyBall_GetDexEntryBank` in [engine/items/item_effects.asm](https://github.com/pret/pokecrystal/blob/master/engine/items/item_effects.asm):
 
 ```asm
-GetPokedexEntryBank:
+HeavyBall_GetDexEntryBank:
 	push hl
 	push de
 	ld a, [wEnemyMonSpecies]
@@ -494,9 +494,9 @@ PokedexShow_GetDexEntryBank:
 
 **Fix:**
 
-Use `dba` instead of `dw` in `PokedexDataPointerTable`.
+Use `dba` instead of `dw` in `PokedexDataPointerTable`. Make sure to edit the `table_width` line to specify a width of 3 instead of 2.
 
-Delete `GetPokedexEntryBank` and `PokedexShow_GetDexEntryBank`. You can also delete `NUM_DEX_ENTRY_BANKS` from [constants/pokemon_data_constants.asm](https://github.com/pret/pokecrystal/blob/master/constants/pokemon_data_constants.asm).
+Delete `HeavyBall_GetDexEntryBank` and `PokedexShow_GetDexEntryBank`. You can also delete `NUM_DEX_ENTRY_BANKS` from [constants/pokemon_data_constants.asm](https://github.com/pret/pokecrystal/blob/master/constants/pokemon_data_constants.asm).
 
 Edit [engine/pokedex/pokedex_2.asm](https://github.com/pret/pokecrystal/blob/master/engine/pokedex/pokedex_2.asm):
 
@@ -569,14 +569,14 @@ Edit [engine/items/item_effects.asm](https://github.com/pret/pokecrystal/blob/ma
 +	pop de
 
  .SkipText:
--	call GetPokedexEntryBank
+-	call HeavyBall_GetDexEntryBank
 +	ld a, d
  	call GetFarByte
  	inc hl
  	cp "@"
  	jr nz, .SkipText
 
--	call GetPokedexEntryBank
+-	call HeavyBall_GetDexEntryBank
 +	ld a, d
  	push bc
  	inc hl
@@ -727,7 +727,7 @@ sine_table: MACRO
 x = 0
 rept \1
 	dw (sin(x) + (sin(x) & $ff)) >> 8 ; round up
-x = x + DIV(32768, \1) ; a circle has 65536 "degrees"
+x += DIV(32768, \1) ; a circle has 65536 "degrees"
 endr
 ENDM
 ```

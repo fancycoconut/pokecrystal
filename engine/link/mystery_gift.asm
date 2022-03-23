@@ -14,7 +14,7 @@ MG_TIMED_OUT      EQU 1 << MG_TIMED_OUT_F
 MG_CANCELED       EQU 1 << MG_CANCELED_F
 MG_WRONG_PREFIX   EQU 1 << MG_WRONG_PREFIX_F
 MG_NOT_OKAY       EQU MG_WRONG_CHECKSUM | MG_TIMED_OUT | MG_CANCELED | MG_WRONG_PREFIX
-MG_OKAY           EQU $ff ^ MG_NOT_OKAY
+MG_OKAY           EQU ~MG_NOT_OKAY
 MG_START_END      EQU %11111111
 
 REGION_PREFIX EQU $96
@@ -37,14 +37,23 @@ DoMysteryGift:
 	; Prepare the first of two messages for wMysteryGiftPartnerData
 	farcall StageDataForMysteryGift
 	call ClearMysteryGiftTrainer
+	vc_patch infrared_fake_0
+if DEF(_CRYSTAL11_VC)
+	farcall StagePartyDataForMysteryGift
+	call ClearMysteryGiftTrainer
+	nop
+else
 	ld a, 2
 	ld [wMysteryGiftMessageCount], a
 	ld a, wMysteryGiftPartnerDataEnd - wMysteryGiftPartnerData
 	ld [wMysteryGiftStagedDataLength], a
+endc
+	vc_patch_end
 
 	ldh a, [rIE]
 	push af
 	call ExchangeMysteryGiftData
+	vc_hook infrared_fake_4
 	ld d, a
 	xor a
 	ldh [rIF], a
@@ -260,6 +269,26 @@ DoMysteryGift:
 	jp CloseSRAM
 
 ExchangeMysteryGiftData:
+	vc_hook infrared_fake_2
+	vc_patch infrared_fake_1
+if DEF(_CRYSTAL11_VC)
+	ld d, $ef
+.loop
+	dec d
+	ld a, d
+	or a
+	jr nz, .loop
+	vc_hook infrared_fake_3
+	nop
+	cp MG_CANCELED
+.restart ; same location as unpatched .restart
+	ret z
+	nop
+	nop
+	cp MG_OKAY
+	jr nz, ExchangeMysteryGiftData
+	ret
+else
 	di
 	farcall ClearChannels
 	call InitializeIRCommunicationInterrupts
@@ -268,6 +297,8 @@ ExchangeMysteryGiftData:
 	call BeginIRCommunication
 	call InitializeIRCommunicationRoles
 	ldh a, [hMGStatusFlags]
+endc
+	vc_patch_end
 	cp MG_CANCELED
 	jp z, EndOrContinueMysteryGiftIRCommunication
 	cp MG_OKAY
