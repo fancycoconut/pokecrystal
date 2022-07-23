@@ -1,9 +1,9 @@
 INCLUDE "engine/gfx/sgb_layouts.asm"
 
-SHINY_ATK_BIT EQU 5
-SHINY_DEF_VAL EQU 10
-SHINY_SPD_VAL EQU 10
-SHINY_SPC_VAL EQU 10
+DEF SHINY_ATK_BIT EQU 5
+DEF SHINY_DEF_VAL EQU 10
+DEF SHINY_SPD_VAL EQU 10
+DEF SHINY_SPC_VAL EQU 10
 
 CheckShininess:
 ; Check if a mon is shiny by DVs at bc.
@@ -1033,7 +1033,7 @@ endr
 .FinalPush:
 	ld hl, MltReq1Packet
 	call _PushSGBPals
-	vc_hook Network_RESET
+	vc_hook Unknown_network_reset ; Unknown why this hook is here, doesn't seem to be needed
 	jp SGBDelayCycles
 
 SGBBorder_PushBGPals:

@@ -1,11 +1,3 @@
-INCLUDE "constants.asm"
-
-INCLUDE "macros/wram.asm"
-
-
-INCLUDE "vram.asm"
-
-
 SECTION "Stack", WRAM0
 
 wStackBottom::
@@ -307,12 +299,12 @@ wMobileWRAMEnd::
 
 SECTION "Sprites", WRAM0
 
-wVirtualOAM::
-; wVirtualOAMSprite00 - wVirtualOAMSprite39
+wShadowOAM::
+; wShadowOAMSprite00 - wShadowOAMSprite39
 for n, NUM_SPRITE_OAM_STRUCTS
-wVirtualOAMSprite{02d:n}:: sprite_oam_struct wVirtualOAMSprite{02d:n}
+wShadowOAMSprite{02d:n}:: sprite_oam_struct wShadowOAMSprite{02d:n}
 endr
-wVirtualOAMEnd::
+wShadowOAMEnd::
 
 
 SECTION "Tilemap", WRAM0
@@ -2233,7 +2225,7 @@ wBattleMenuCursorPosition:: db
 
 	ds 1
 
-wCurBattleMon:: 
+wCurBattleMon::
 ; index of the player's mon currently in battle (0-5)
 	db
 
@@ -3474,7 +3466,6 @@ ENDU
 
 
 SECTION "GBC Video", WRAMX, ALIGN[8]
-; LCD expects wLYOverrides to have an alignment of $100
 
 ; eight 4-color palettes each
 wGBCPalettes:: ; used only for BANK(wGBCPalettes)
@@ -3483,6 +3474,7 @@ wOBPals1:: ds 8 palettes
 wBGPals2:: ds 8 palettes
 wOBPals2:: ds 8 palettes
 
+	align 8
 wLYOverrides:: ds SCREEN_HEIGHT_PX
 wLYOverridesEnd::
 
@@ -3497,6 +3489,7 @@ wMagnetTrainPlayerSpriteInitX:: db
 
 	ds 106
 
+	align 8
 wLYOverridesBackup:: ds SCREEN_HEIGHT_PX
 wLYOverridesBackupEnd::
 
@@ -3613,8 +3606,3 @@ SECTION "Stack RAM", WRAMX
 
 wWindowStack:: ds $1000 - 1
 wWindowStackBottom:: ds 1
-
-
-INCLUDE "sram.asm"
-
-INCLUDE "hram.asm"
