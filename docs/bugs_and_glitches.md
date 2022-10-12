@@ -66,6 +66,7 @@ Fixes in the [multi-player battle engine](#multi-player-battle-engine) category 
   - [`LoadMetatiles` wraps around past 128 blocks](#loadmetatiles-wraps-around-past-128-blocks)
   - [Surfing directly across a map connection does not load the new map](#surfing-directly-across-a-map-connection-does-not-load-the-new-map)
   - [Swimming NPCs aren't limited by their movement radius](#swimming-npcs-arent-limited-by-their-movement-radius)
+  - [You can fish on top of NPCs](#you-can-fish-on-top-of-npcs)
   - [Pokémon deposited in the Day-Care might lose experience](#pok%C3%A9mon-deposited-in-the-day-care-might-lose-experience)
 - [Graphics](#graphics)
   - [In-battle “`…`” ellipsis is too high](#in-battle--ellipsis-is-too-high)
@@ -103,6 +104,7 @@ Fixes in the [multi-player battle engine](#multi-player-battle-engine) category 
   - [`ReadObjectEvents` overflows into `wObjectMasks`](#readobjectevents-overflows-into-wobjectmasks)
   - [`ClearWRAM` only clears WRAM bank 1](#clearwram-only-clears-wram-bank-1)
   - [`BattleAnimCmd_ClearObjs` only clears the first 6⅔ objects](#battleanimcmd_clearobjs-only-clears-the-first-6-objects)
+  - [Options menu fails to clear joypad state on initialization](#options-menu-fails-to-clear-joypad-state-on-initialization)
 
 
 ## Multi-player battle engine
@@ -789,7 +791,6 @@ And edit [engine/battle/move_effects/frustration.asm](https://github.com/pret/po
  BattleCommand_FrustrationPower:
 -; BUG: Return and Frustration deal no damage when the user's happiness is low or high, respectively (see docs/bugs_and_glitches.md)
  	...
--; BUG: Return and Frustration deal no damage when the user's happiness is low or high, respectively (see docs/bugs_and_glitches.md)
  	call Multiply
  	ld a, 25
  	ldh [hDivisor], a
@@ -1656,11 +1657,39 @@ This bug is why the Lapras in [maps/UnionCaveB2F.asm](https://github.com/pret/po
 ```
 
 
+### You can fish on top of NPCs
+
+**Fix**: Edit [engine/events/overworld.asm](https://github.com/pret/pokecrystal/blob/master/engine/events/overworld.asm):
+
+```diff
+ FishFunction:
+ ...
+
+ .TryFish:
+-; BUG: You can fish on top of NPCs (see docs/bugs_and_glitches.md)
+ 	ld a, [wPlayerState]
+ 	cp PLAYER_SURF
+ 	jr z, .fail
+ 	cp PLAYER_SURF_PIKA
+ 	jr z, .fail
+ 	call GetFacingTileCoord
+ 	call GetTileCollision
+ 	cp WATER_TILE
+-	jr z, .facingwater
++	jr nz, .fail
++	farcall CheckFacingObject
++	jr nc, .facingwater
+ .fail
+ 	ld a, $3
+ 	ret
+```
+
+
 ### Pokémon deposited in the Day-Care might lose experience
 
 When a Pokémon is withdrawn from the Day-Care, its Exp. Points are reset to the minimum required for its level. This means that if it hasn't gained any levels, it may lose experience.
 
-**Fix**: Edit `RetrieveBreedmon` in [engine/pokemon/move_mon.asm](https://github.com/pret/pokecrystal/blob/master/engine/pokemon/move_mon.asm):
+**Fix:** Edit `RetrieveBreedmon` in [engine/pokemon/move_mon.asm](https://github.com/pret/pokecrystal/blob/master/engine/pokemon/move_mon.asm):
 
 ```diff
  RetrieveBreedmon:
@@ -1731,7 +1760,7 @@ This is a mistake with the left-hand warp carpet corner tiles in [gfx/tilesets/p
 ![image](https://raw.githubusercontent.com/pret/pokecrystal/master/docs/images/port.png)
 
 
-## The Ruins of Alph research center's roof color at night looks wrong
+### The Ruins of Alph research center's roof color at night looks wrong
 
 The dungeons' map group mostly has indoor maps that don't need roof colors, but [maps/RuinsOfAlphOutside.blk](https://github.com/pret/pokecrystal/blob/master/maps/RuinsOfAlphOutside.blk) is an exception. It appears to have poorly-chosen roof colors: the morning/day colors are the same default gray as the unused group 0, and the night colors combine the light default gray and the dark red of Cinnabar's night roofs.
 
@@ -2045,7 +2074,7 @@ If `[wWalkingDirection]` is `STANDING` (`$FF`), this will check `[.EdgeWarps + $
  	ld d, 0
  	ld hl, .EdgeWarps
  	add hl, de
- 	ld a, [wPlayerStandingTile]
+ 	ld a, [wPlayerTile]
  	cp [hl]
  	jr nz, .not_warp
 
@@ -2193,7 +2222,7 @@ Edit `DragonsDen1F_MapScripts` in [maps/DragonsDen1F.asm](https://github.com/pre
 +	callback MAPCALLBACK_NEWMAP, .UnsetClairScene
 +
 +.UnsetClairScene:
-+	setmapscene DRAGONS_DEN_B1F, SCENE_DRAGONSDENB1F_NOTHING
++	setmapscene DRAGONS_DEN_B1F, SCENE_DRAGONSDENB1F_NOOP
 +	endcallback
 ```
 
@@ -2381,13 +2410,6 @@ This bug can prevent you from talking to Eusine in Celadon City or encountering 
 **Fix:** Edit `CheckOwnMonAnywhere` in [engine/pokemon/search_owned.asm](https://github.com/pret/pokecrystal/blob/master/engine/pokemon/search_owned.asm):
 
 ```diff
- 	; If there are no monsters in the party,
- 	; the player must not own any yet.
--; BUG: CheckOwnMon does not check the Day-Care (see docs/bugs_and_glitches.md)
- 	ld a, [wPartyCount]
- 	and a
- 	ret z
-
 -; BUG: CheckOwnMon does not check the Day-Care (see docs/bugs_and_glitches.md)
 +	ld hl, wBreedMon1Species
 +	ld bc, wBreedMon1OT
@@ -2398,6 +2420,11 @@ This bug can prevent you from talking to Eusine in Celadon City or encountering 
 +	ld bc, wBreedMon2OT
 +	call CheckOwnMon
 +	ret c ; found!
++
+ 	ld d, a
+ 	ld e, 0
+ 	ld hl, wPartyMon1Species
+ 	ld bc, wPartyMonOTs
 ```
 
 
@@ -2628,4 +2655,22 @@ If `IsInArray` returns `nc`, data at `bc` will be executed as code.
  	dec a
  	jr nz, .loop
  	ret
+```
+
+
+### Options menu fails to clear joypad state on initialization
+
+([Video](https://www.youtube.com/watch?v=uhDSIkXkl3g))
+
+This bug allows all the options to be updated at once if the left or right buttons are pressed on the same frame that the options menu is opened.
+
+**Fix:** Edit `_Option` in [engine/menus/options_menu.asm](https://github.com/pret/pokecrystal/blob/master/engine/menus/options_menu.asm):
+
+```diff
+ _Option:
+-; BUG: Options menu fails to clear joypad state on initialization (see docs/bugs_and_glitches.md)
++	call ClearJoypad
+ 	ld hl, hInMenu
+ 	ld a, [hl]
+ 	push af
 ```
