@@ -412,11 +412,11 @@ EZChat_MasterLoop:
 
 .SpawnObjects:
 	depixel 3, 1, 2, 5
-	ld a, SPRITE_ANIM_INDEX_EZCHAT_CURSOR
+	ld a, SPRITE_ANIM_OBJ_EZCHAT_CURSOR
 	call InitSpriteAnimStruct
-	depixel 8, 1, 2, 5
 
-	ld a, SPRITE_ANIM_INDEX_EZCHAT_CURSOR
+	depixel 8, 1, 2, 5
+	ld a, SPRITE_ANIM_OBJ_EZCHAT_CURSOR
 	call InitSpriteAnimStruct
 	ld hl, SPRITEANIMSTRUCT_VAR1
 	add hl, bc
@@ -424,7 +424,7 @@ EZChat_MasterLoop:
 	ld [hl], a
 
 	depixel 9, 2, 2, 0
-	ld a, SPRITE_ANIM_INDEX_EZCHAT_CURSOR
+	ld a, SPRITE_ANIM_OBJ_EZCHAT_CURSOR
 	call InitSpriteAnimStruct
 	ld hl, SPRITEANIMSTRUCT_VAR1
 	add hl, bc
@@ -432,7 +432,7 @@ EZChat_MasterLoop:
 	ld [hl], a
 
 	depixel 10, 16
-	ld a, SPRITE_ANIM_INDEX_EZCHAT_CURSOR
+	ld a, SPRITE_ANIM_OBJ_EZCHAT_CURSOR
 	call InitSpriteAnimStruct
 	ld hl, SPRITEANIMSTRUCT_VAR1
 	add hl, bc
@@ -440,7 +440,7 @@ EZChat_MasterLoop:
 	ld [hl], a
 
 	depixel 10, 4
-	ld a, SPRITE_ANIM_INDEX_EZCHAT_CURSOR
+	ld a, SPRITE_ANIM_OBJ_EZCHAT_CURSOR
 	call InitSpriteAnimStruct
 	ld hl, SPRITEANIMSTRUCT_VAR1
 	add hl, bc
@@ -448,7 +448,7 @@ EZChat_MasterLoop:
 	ld [hl], a
 
 	depixel 10, 2
-	ld a, SPRITE_ANIM_INDEX_EZCHAT_CURSOR
+	ld a, SPRITE_ANIM_OBJ_EZCHAT_CURSOR
 	call InitSpriteAnimStruct
 	ld hl, SPRITEANIMSTRUCT_VAR1
 	add hl, bc
@@ -2623,12 +2623,12 @@ AnimateEZChatCursor:
 	ret
 
 .nine
-	ld d, -13 * 8
+	ld d, -13 * TILE_WIDTH
 	ld a, SPRITE_ANIM_FRAMESET_EZCHAT_CURSOR_7
 	jr .eight_nine_load
 
 .eight
-	ld d, 2 * 8
+	ld d, 2 * TILE_WIDTH
 	ld a, SPRITE_ANIM_FRAMESET_EZCHAT_CURSOR_6
 .eight_nine_load
 	push de
@@ -2640,7 +2640,7 @@ AnimateEZChatCursor:
 	ld e, a
 	sla a
 	add e
-	add 8 * 8
+	add 8 * TILE_WIDTH
 	ld hl, SPRITEANIMSTRUCT_YCOORD
 	add hl, bc
 	ld [hld], a
