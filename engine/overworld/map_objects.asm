@@ -36,7 +36,7 @@ HandleObjectStep:
 CheckObjectStillVisible:
 	ld hl, OBJECT_FLAGS2
 	add hl, bc
-	res OBJ_FLAGS2_6, [hl]
+	res OFF_SCREEN_F, [hl]
 	ld a, [wXCoord]
 	ld e, a
 	ld hl, OBJECT_MAP_X
@@ -62,7 +62,7 @@ CheckObjectStillVisible:
 .ok
 	ld hl, OBJECT_FLAGS2
 	add hl, bc
-	set OBJ_FLAGS2_6, [hl]
+	set OFF_SCREEN_F, [hl]
 	ld a, [wXCoord]
 	ld e, a
 	ld hl, OBJECT_INIT_X
@@ -99,7 +99,7 @@ CheckObjectStillVisible:
 .yes2
 	ld hl, OBJECT_FLAGS2
 	add hl, bc
-	set OBJ_FLAGS2_6, [hl]
+	set OFF_SCREEN_F, [hl]
 	and a
 	ret
 
@@ -147,7 +147,7 @@ HandleObjectAction:
 	jr nz, SetFacingStanding
 	ld hl, OBJECT_FLAGS2
 	add hl, bc
-	bit OBJ_FLAGS2_6, [hl]
+	bit OFF_SCREEN_F, [hl]
 	jr nz, SetFacingStanding
 	bit FROZEN_F, [hl]
 	jr nz, _CallFrozenObjectAction
@@ -195,14 +195,14 @@ CopyCoordsTileToLastCoordsTile:
 	ld hl, OBJECT_LAST_MAP_Y
 	add hl, bc
 	ld [hl], a
-	ld hl, OBJECT_TILE
+	ld hl, OBJECT_TILE_COLLISION
 	add hl, bc
 	ld a, [hl]
 	ld hl, OBJECT_LAST_TILE
 	add hl, bc
 	ld [hl], a
 	call SetTallGrassFlags
-	ld hl, OBJECT_TILE
+	ld hl, OBJECT_TILE_COLLISION
 	add hl, bc
 	ld a, [hl]
 	call UselessAndA
@@ -228,12 +228,12 @@ UpdateTallGrassFlags:
 	add hl, bc
 	bit OVERHEAD_F, [hl]
 	jr z, .ok
-	ld hl, OBJECT_TILE
+	ld hl, OBJECT_TILE_COLLISION
 	add hl, bc
 	ld a, [hl]
 	call SetTallGrassFlags
 .ok
-	ld hl, OBJECT_TILE
+	ld hl, OBJECT_TILE_COLLISION
 	add hl, bc
 	ld a, [hl]
 	call UselessAndA
@@ -321,9 +321,9 @@ GetNextTile:
 	ld [hl], a
 	ld e, a
 	push bc
-	call GetCoordTile
+	call GetCoordTileCollision
 	pop bc
-	ld hl, OBJECT_TILE
+	ld hl, OBJECT_TILE_COLLISION
 	add hl, bc
 	ld [hl], a
 	ret
@@ -502,9 +502,9 @@ StepFunction_Reset:
 	add hl, bc
 	ld e, [hl]
 	push bc
-	call GetCoordTile
+	call GetCoordTileCollision
 	pop bc
-	ld hl, OBJECT_TILE
+	ld hl, OBJECT_TILE_COLLISION
 	add hl, bc
 	ld [hl], a
 	call CopyCoordsTileToLastCoordsTile
@@ -524,7 +524,7 @@ StepFunction_FromMovement:
 
 .Pointers:
 ; entries correspond to SPRITEMOVEFN_* constants (see constants/map_object_constants.asm)
-	table_width 2, StepFunction_FromMovement.Pointers
+	table_width 2
 	dw MovementFunction_Null                 ; 00
 	dw MovementFunction_RandomWalkY          ; 01
 	dw MovementFunction_RandomWalkX          ; 02
@@ -656,15 +656,15 @@ MovementFunction_Strength:
 	dw .stop
 
 .start:
-	ld hl, OBJECT_TILE
+	ld hl, OBJECT_TILE_COLLISION
 	add hl, bc
 	ld a, [hl]
 	call CheckPitTile
 	jr z, .on_pit
 	ld hl, OBJECT_FLAGS2
 	add hl, bc
-	bit OBJ_FLAGS2_2, [hl]
-	res OBJ_FLAGS2_2, [hl]
+	bit BOULDER_MOVING_F, [hl]
+	res BOULDER_MOVING_F, [hl]
 	jr z, .ok
 	ld hl, OBJECT_RANGE
 	add hl, bc
@@ -1088,7 +1088,7 @@ _SetRandomStepDuration:
 
 StepTypesJumptable:
 ; entries correspond to STEP_TYPE_* constants (see constants/map_object_constants.asm)
-	table_width 2, StepTypesJumptable
+	table_width 2
 	dw StepFunction_Reset           ; 00
 	dw StepFunction_FromMovement    ; 01
 	dw StepFunction_NPCWalk         ; 02
@@ -1667,7 +1667,7 @@ StepFunction_StrengthBoulder:
 	pop bc
 	ld hl, OBJECT_FLAGS2
 	add hl, bc
-	res OBJ_FLAGS2_2, [hl]
+	res BOULDER_MOVING_F, [hl]
 	call CopyCoordsTileToLastCoordsTile
 	ld hl, OBJECT_WALKING
 	add hl, bc
@@ -1957,7 +1957,7 @@ ApplyMovementToFollower:
 	ret z
 	cp movement_step_end
 	ret z
-	cp movement_step_4b
+	cp movement_step_stop
 	ret z
 	cp movement_step_bump
 	ret z
@@ -2167,8 +2167,8 @@ CopyTempObjectData:
 	ret
 
 UpdateAllObjectsFrozen::
-	ld a, [wVramState]
-	bit 0, a
+	ld a, [wStateFlags]
+	bit SPRITE_UPDATES_DISABLED_F, a
 	ret z
 	ld bc, wObjectStructs
 	xor a
@@ -2194,7 +2194,7 @@ RespawnPlayerAndOpponent:
 	ld a, PLAYER
 	call RespawnObject
 	ld a, [wBattleScriptFlags]
-	bit 7, a
+	bit BATTLESCRIPT_SCRIPTED_F, a
 	jr z, .skip_opponent
 	ldh a, [hLastTalked]
 	and a
@@ -2278,9 +2278,9 @@ UpdateObjectTile:
 	ld hl, OBJECT_MAP_Y
 	add hl, bc
 	ld e, [hl]
-	call GetCoordTile
+	call GetCoordTileCollision
 	pop bc
-	ld hl, OBJECT_TILE
+	ld hl, OBJECT_TILE_COLLISION
 	add hl, bc
 	ld [hl], a
 	farcall UpdateTallGrassFlags ; no need to farcall
@@ -2728,8 +2728,8 @@ ResetObject:
 	db SPRITEMOVEDATA_STANDING_RIGHT
 
 _UpdateSprites::
-	ld a, [wVramState]
-	bit 0, a
+	ld a, [wStateFlags]
+	bit SPRITE_UPDATES_DISABLED_F, a
 	ret z
 	xor a
 	ldh [hUsedSpriteIndex], a
@@ -2744,8 +2744,8 @@ _UpdateSprites::
 	ret
 
 .fill
-	ld a, [wVramState]
-	bit 1, a
+	ld a, [wStateFlags]
+	bit LAST_12_SPRITE_OAM_STRUCTS_RESERVED_F, a
 	ld b, NUM_SPRITE_OAM_STRUCTS * SPRITEOAMSTRUCT_LENGTH
 	jr z, .ok
 	ld b, (NUM_SPRITE_OAM_STRUCTS - 12) * SPRITEOAMSTRUCT_LENGTH
@@ -2757,7 +2757,7 @@ _UpdateSprites::
 	ld h, HIGH(wShadowOAM)
 	ld de, SPRITEOAMSTRUCT_LENGTH
 	ld a, b
-	ld c, SCREEN_HEIGHT_PX + 2 * TILE_WIDTH
+	ld c, OAM_YCOORD_HIDDEN
 .loop
 	ld [hl], c ; y
 	add hl, de
@@ -2898,14 +2898,14 @@ InitSprites:
 	and ~(1 << 7)
 	ldh [hCurSpriteTile], a
 	xor a
-	bit 7, [hl]
+	bit 7, [hl] ; tiles $80+ are in VRAM bank 0
 	jr nz, .not_vram1
 	or VRAM_BANK_1
 .not_vram1
 	ld hl, OBJECT_FLAGS2
 	add hl, bc
 	ld e, [hl]
-	bit OBJ_FLAGS2_7, e
+	bit OBJ_FLAGS2_7_F, e
 	jr z, .not_priority
 	or PRIORITY
 .not_priority

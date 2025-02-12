@@ -147,6 +147,7 @@ WildFled_EnemyFled_LinkBattleCanceled:
 	call CheckMobileBattleError
 	jr c, .skip_sfx
 
+; BUG: SFX_RUN does not play correctly when a wild Pokémon flees from battle (see docs/bugs_and_glitches.md)
 	ld de, SFX_RUN
 	call PlaySFX
 
@@ -623,7 +624,8 @@ ParsePlayerAction:
 	jr nz, .locked_in
 	xor a
 	ld [wMoveSelectionMenuType], a
-	inc a ; POUND
+	assert POUND == 1
+	inc a
 	ld [wFXAnimID], a
 	call MoveSelectionScreen
 	push af
@@ -2363,7 +2365,7 @@ WinTrainerBattle:
 	ret nz
 
 	ld a, [wInBattleTowerBattle]
-	bit 0, a
+	bit IN_BATTLE_TOWER_BATTLE_F, a
 	jr nz, .battle_tower
 
 	call BattleWinSlideInEnemyTrainerFrontpic
@@ -2744,7 +2746,7 @@ ForcePlayerMonChoice:
 	call LoadTilemapToTempTilemap
 	call WaitBGMap
 	call GetMemSGBLayout
-	call SetPalettes
+	call SetDefaultBGPAndOBP
 	xor a
 	ld c, a
 	ret
@@ -2763,7 +2765,7 @@ ForcePlayerMonChoice:
 	call _LoadHPBar
 	call CloseWindow
 	call GetMemSGBLayout
-	call SetPalettes
+	call SetDefaultBGPAndOBP
 	call SendOutMonText
 	call NewBattleMonStatus
 	call BreakAttraction
@@ -2827,9 +2829,9 @@ SetUpBattlePartyMenu_Loop: ; switch to fullscreen menu?
 
 JumpToPartyMenuAndPrintText:
 	farcall WritePartyMenuTilemap
-	farcall PrintPartyMenuText
+	farcall PlacePartyMenuText
 	call WaitBGMap
-	call SetPalettes
+	call SetDefaultBGPAndOBP
 	call DelayFrame
 	ret
 
@@ -2911,7 +2913,7 @@ LostBattle:
 	ld [wBattleEnded], a
 
 	ld a, [wInBattleTowerBattle]
-	bit 0, a
+	bit IN_BATTLE_TOWER_BATTLE_F, a
 	jr nz, .battle_tower
 
 	ld a, [wBattleType]
@@ -2960,7 +2962,7 @@ LostBattle:
 ; Grayscale
 	ld b, SCGB_BATTLE_GRAYSCALE
 	call GetSGBLayout
-	call SetPalettes
+	call SetDefaultBGPAndOBP
 	jr .end
 
 .LostLinkBattle:
@@ -3825,7 +3827,8 @@ TryToRunAwayFromBattle:
 	cp BATTLEACTION_FORFEIT
 	ld a, DRAW
 	jr z, .fled
-	dec a ; LOSE
+	assert DRAW - 1 == LOSE
+	dec a
 .fled
 	ld b, a
 	ld a, [wBattleResult]
@@ -3863,9 +3866,9 @@ InitBattleMon:
 	ld a, MON_SPECIES
 	call GetPartyParamLocation
 	ld de, wBattleMonSpecies
-	ld bc, MON_ID
+	ld bc, MON_OT_ID
 	call CopyBytes
-	ld bc, MON_DVS - MON_ID
+	ld bc, MON_DVS - MON_OT_ID
 	add hl, bc
 	ld de, wBattleMonDVs
 	ld bc, MON_POKERUS - MON_DVS
@@ -3949,9 +3952,9 @@ InitEnemyMon:
 	ld hl, wOTPartyMon1Species
 	call GetPartyLocation
 	ld de, wEnemyMonSpecies
-	ld bc, MON_ID
+	ld bc, MON_OT_ID
 	call CopyBytes
-	ld bc, MON_DVS - MON_ID
+	ld bc, MON_DVS - MON_OT_ID
 	add hl, bc
 	ld de, wEnemyMonDVs
 	ld bc, MON_POKERUS - MON_DVS
@@ -5044,7 +5047,7 @@ BattleMenu_Pack:
 	and BATTLERESULT_BITMASK
 	ld [wBattleResult], a ; WIN
 	call ClearWindowData
-	call SetPalettes
+	call SetDefaultBGPAndOBP
 	scf
 	ret
 
@@ -5094,7 +5097,7 @@ BattleMenuPKMN_Loop:
 	call CloseWindow
 	call LoadTilemapToTempTilemap
 	call GetMemSGBLayout
-	call SetPalettes
+	call SetDefaultBGPAndOBP
 	jp BattleMenu
 
 .GetMenu:
@@ -5180,7 +5183,7 @@ TryPlayerSwitch:
 	call _LoadHPBar
 	call CloseWindow
 	call GetMemSGBLayout
-	call SetPalettes
+	call SetDefaultBGPAndOBP
 	ld a, [wCurPartyMon]
 	ld [wCurBattleMon], a
 PlayerSwitch:
@@ -5969,9 +5972,9 @@ LoadEnemyMon:
 	and a
 	jp nz, InitEnemyMon
 
-; and also not in a BattleTower-Battle
+; and also not in a Battle Tower battle
 	ld a, [wInBattleTowerBattle]
-	bit 0, a
+	bit IN_BATTLE_TOWER_BATTLE_F, a
 	jp nz, InitEnemyMon
 
 ; Make sure everything knows what species we're working with
@@ -6404,7 +6407,7 @@ LoadEnemyMon:
 
 	ld hl, wEnemyMonStats
 	ld de, wEnemyStats
-	ld bc, NUM_EXP_STATS * 2
+	ld bc, NUM_BATTLE_STATS * 2
 	call CopyBytes
 
 ; BUG: PRZ and BRN stat reductions don't apply to switched Pokémon (see docs/bugs_and_glitches.md)
@@ -6753,7 +6756,8 @@ ApplyStatLevelMultiplier:
 	pop bc
 	ret
 
-INCLUDE "data/battle/stat_multipliers_2.asm"
+StatLevelMultipliers_Applied:
+INCLUDE "data/battle/stat_multipliers.asm"
 
 BadgeStatBoosts:
 ; Raise the stats of the battle mon in wBattleMon
@@ -6896,7 +6900,7 @@ _BattleRandom::
 	ld [wLinkBattleRNCount], a
 
 ; If we haven't hit the end yet, we're good
-	cp 10 - 1 ; Exclude last value. See the closing comment
+	cp SERIAL_RNS_LENGTH - 1 ; Exclude last value. See the closing comment
 	ld a, [hl]
 	pop bc
 	pop hl
@@ -6912,7 +6916,7 @@ _BattleRandom::
 	xor a
 	ld [wLinkBattleRNCount], a
 	ld hl, wLinkBattleRNs
-	ld b, 10 ; number of seeds
+	ld b, SERIAL_RNS_LENGTH ; number of seeds
 
 ; Generate next number in the sequence for each seed
 ; a[n+1] = (a[n] * 5 + 1) % 256
@@ -6962,7 +6966,7 @@ FinishBattleAnim:
 	push hl
 	ld b, SCGB_BATTLE_COLORS
 	call GetSGBLayout
-	call SetPalettes
+	call SetDefaultBGPAndOBP
 	call DelayFrame
 	pop hl
 	pop de
@@ -6978,7 +6982,7 @@ GiveExperiencePoints:
 	ret nz
 
 	ld a, [wInBattleTowerBattle]
-	bit 0, a
+	bit IN_BATTLE_TOWER_BATTLE_F, a
 	ret nz
 
 	call .EvenlyDivideExpAmongParticipants
@@ -7073,7 +7077,7 @@ GiveExperiencePoints:
 	call Divide
 ; Boost Experience for traded Pokemon
 	pop bc
-	ld hl, MON_ID
+	ld hl, MON_OT_ID
 	add hl, bc
 	ld a, [wPlayerID]
 	cp [hl]
@@ -8342,7 +8346,7 @@ CheckPayDay:
 	ld hl, BattleText_PlayerPickedUpPayDayMoney
 	call StdBattleTextbox
 	ld a, [wInBattleTowerBattle]
-	bit 0, a
+	bit IN_BATTLE_TOWER_BATTLE_F, a
 	ret z
 	call ClearTilemap
 	call ClearBGPalettes
@@ -8458,7 +8462,7 @@ _DisplayLinkRecord:
 	call WaitBGMap2
 	ld b, SCGB_DIPLOMA
 	call GetSGBLayout
-	call SetPalettes
+	call SetDefaultBGPAndOBP
 	ld c, 8
 	call DelayFrames
 	call WaitPressAorB_BlinkCursor
@@ -8939,7 +8943,7 @@ InitBattleDisplay:
 	call HideSprites
 	ld b, SCGB_BATTLE_COLORS
 	call GetSGBLayout
-	call SetPalettes
+	call SetDefaultBGPAndOBP
 	ld a, $90
 	ldh [hWY], a
 	xor a
@@ -9075,7 +9079,7 @@ BattleStartMessage:
 	farcall Battle_GetTrainerName
 
 	ld hl, WantsToBattleText
-	jr .PlaceBattleStartText
+	jr .PrintBattleStartText
 
 .wild
 	call BattleCheckEnemyShininess
@@ -9117,18 +9121,18 @@ BattleStartMessage:
 	farcall StubbedTrainerRankings_HookedEncounters
 
 	ld hl, HookedPokemonAttackedText
-	jr .PlaceBattleStartText
+	jr .PrintBattleStartText
 
 .NotFishing:
 	ld hl, PokemonFellFromTreeText
 	cp BATTLETYPE_TREE
-	jr z, .PlaceBattleStartText
+	jr z, .PrintBattleStartText
 	ld hl, WildCelebiAppearedText
 	cp BATTLETYPE_CELEBI
-	jr z, .PlaceBattleStartText
+	jr z, .PrintBattleStartText
 	ld hl, WildPokemonAppearedText
 
-.PlaceBattleStartText:
+.PrintBattleStartText:
 	push hl
 	farcall BattleStart_TrainerHuds
 	pop hl

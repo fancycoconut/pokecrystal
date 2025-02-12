@@ -729,7 +729,7 @@ CGBCopyBattleObjectPals: ; unreferenced
 	dec c
 	jr nz, .loop
 	ld hl, BattleObjectPals
-	ld de, wOBPals1 palette 2
+	ld de, wOBPals1 palette PAL_BATTLE_OB_GRAY
 	ld bc, 2 palettes
 	ld a, BANK(wOBPals1)
 	call FarCopyWRAM
@@ -979,8 +979,8 @@ PushSGBBorder:
 	ret
 
 SGB_ClearVRAM:
-	ld hl, VRAM_Begin
-	ld bc, VRAM_End - VRAM_Begin
+	ld hl, STARTOF(VRAM)
+	ld bc, SIZEOF(VRAM)
 	xor a
 	call ByteFill
 	ret
@@ -1171,7 +1171,7 @@ INCLUDE "gfx/sgb/pal_packets.asm"
 INCLUDE "data/sgb_ctrl_packets.asm"
 
 PredefPals:
-	table_width PALETTE_SIZE, PredefPals
+	table_width PALETTE_SIZE
 INCLUDE "gfx/sgb/predef.pal"
 	assert_table_length NUM_PREDEF_PALS
 
@@ -1200,7 +1200,7 @@ LoadMapPals:
 
 	; Which palette group is based on whether we're outside or inside
 	ld a, [wEnvironment]
-	and 7
+	maskbits NUM_ENVIRONMENTS + 1
 	ld e, a
 	ld d, 0
 	ld hl, EnvironmentColorsPointers
@@ -1308,7 +1308,7 @@ MapObjectPals::
 INCLUDE "gfx/overworld/npc_sprites.pal"
 
 RoofPals:
-	table_width PAL_COLOR_SIZE * 2 * 2, RoofPals
+	table_width PAL_COLOR_SIZE * 2 * 2
 INCLUDE "gfx/tilesets/roofs.pal"
 	assert_table_length NUM_MAP_GROUPS + 1
 

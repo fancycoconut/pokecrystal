@@ -62,7 +62,7 @@ DebugColorPicker: ; unreferenced
 	ld [wDebugColorIsShiny], a
 .loop
 	ld a, [wJumptableIndex]
-	bit 7, a
+	bit JUMPTABLE_EXIT_F, a
 	jr nz, .exit
 	call DebugColorMain
 	call DebugColor_PlaceCursor
@@ -129,15 +129,15 @@ endr
 DebugColor_InitVRAM:
 	ld a, $1
 	ldh [rVBK], a
-	ld hl, VRAM_Begin
-	ld bc, VRAM_End - VRAM_Begin
+	ld hl, STARTOF(VRAM)
+	ld bc, SIZEOF(VRAM)
 	xor a
 	call ByteFill
 
 	ld a, $0
 	ldh [rVBK], a
-	ld hl, VRAM_Begin
-	ld bc, VRAM_End - VRAM_Begin
+	ld hl, STARTOF(VRAM)
+	ld bc, SIZEOF(VRAM)
 	xor a
 	call ByteFill
 
@@ -720,7 +720,7 @@ DebugColor_TMHMJoypad:
 
 .exit ; unreferenced
 	ld hl, wJumptableIndex
-	set 7, [hl]
+	set JUMPTABLE_EXIT_F, [hl]
 	ret
 
 .scroll:
@@ -1081,7 +1081,7 @@ TilesetColorPicker: ; unreferenced
 	ld [wDebugTilesetCurColor], a
 	ldh [hMapAnims], a
 	call ClearSprites
-	call OverworldTextModeSwitch
+	call LoadOverworldTilemapAndAttrmapPals
 	call WaitBGMap2
 	xor a
 	ldh [hBGMapMode], a
